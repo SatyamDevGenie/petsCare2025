@@ -1,5 +1,6 @@
 import asyncHandler from "express-async-handler";
 import Appointment from "../models/appointmentModel.js";
+import Notification from "../models/notificationModel.js";
 
 // Book an appointment (Only petOwners can book)
 const bookAppointment = asyncHandler(async (req, res) => {
@@ -74,12 +75,11 @@ const getUserAppointments = asyncHandler(async (req, res) => {
 
 
 
-// Doctor Accept/Reject Appointment
+// Doctor or Admin Accept/Reject Appointment (sends real-time notification to pet owner)
 const respondToAppointment = asyncHandler(async (req, res) => {
   try {
     const { appointmentId, response } = req.body;
 
-    // Validate response type
     if (!["Accepted", "Rejected"].includes(response)) {
       return res.status(400).json({
         success: false,
@@ -87,8 +87,10 @@ const respondToAppointment = asyncHandler(async (req, res) => {
       });
     }
 
-    // Find appointment by ID
-    const appointment = await Appointment.findById(appointmentId);
+    const appointment = await Appointment.findById(appointmentId)
+      .populate("petOwner", "name email")
+      .populate("doctor", "name")
+      .populate("pet", "name");
 
     if (!appointment) {
       return res.status(404).json({
@@ -97,27 +99,58 @@ const respondToAppointment = asyncHandler(async (req, res) => {
       });
     }
 
-    // Ensure the request contains a valid doctor object
-    if (!req.doctor || !req.doctor._id) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized. Doctor credentials required.",
-      });
-    }
+    const isAdmin = req.user && req.user.isAdmin;
+    const isDoctor = req.doctor && req.doctor._id;
+    const doctorId = appointment.doctor?._id || appointment.doctor;
+    const petOwnerId = appointment.petOwner?._id || appointment.petOwner;
 
-    // Ensure only the assigned doctor can respond
-    if (appointment.doctor.toString() !== req.doctor._id.toString()) {
+    if (isDoctor) {
+      if (doctorId.toString() !== req.doctor._id.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You are not authorized to respond to this appointment.",
+        });
+      }
+    } else if (!isAdmin) {
       return res.status(403).json({
         success: false,
-        message: "You are not authorized to respond to this appointment.",
+        message: "Access denied. Doctor or Admin required.",
       });
     }
 
-    // Update appointment status
+    const actedBy = isDoctor ? req.doctor.name : "Admin";
     appointment.doctorResponse = response;
     appointment.status = response;
-
     const updatedAppointment = await appointment.save();
+
+    // Create in-app notification for the pet owner (recipient is User _id)
+    const notificationType = response === "Accepted" ? "appointment_accepted" : "appointment_rejected";
+    const title = response === "Accepted" ? "Appointment Accepted" : "Appointment Rejected";
+    const message =
+      response === "Accepted"
+        ? `Your appointment with Dr. ${appointment.doctor?.name || "the doctor"} for ${appointment.pet?.name || "your pet"} has been accepted by ${actedBy}.`
+        : `Your appointment with Dr. ${appointment.doctor?.name || "the doctor"} for ${appointment.pet?.name || "your pet"} has been rejected by ${actedBy}.`;
+
+    await Notification.create({
+      recipient: appointment.petOwner._id,
+      type: notificationType,
+      title,
+      message,
+      appointmentId: appointment._id,
+      actedBy,
+    });
+
+    // Emit real-time event to pet owner (socket.io) – req.app.get("io") set in server.js
+    const io = req.app.get("io");
+    if (io) {
+      io.to(`user:${petOwnerId}`).emit("appointment_response", {
+        appointmentId: updatedAppointment._id,
+        status: response,
+        title,
+        message,
+        actedBy,
+      });
+    }
 
     res.status(200).json({
       success: true,

@@ -92,4 +92,30 @@ const doctor = asyncHandler(async (req, res, next) => {
   next();
 });
 
-export { protect, admin, doctor };
+/**
+ * Middleware: allow either Doctor OR Admin (User with isAdmin) to proceed.
+ * Use for routes that both doctors and admins can access (e.g. respond to appointment).
+ */
+const doctorOrAdmin = asyncHandler(async (req, res, next) => {
+  const isAdmin = req.user && req.user.isAdmin;
+  const isDoctor = req.doctor;
+
+  if (isDoctor) {
+    const doctor = await Doctor.findById(req.doctor._id);
+    if (doctor && doctor.isDoctor) {
+      req.doctor = doctor;
+      return next();
+    }
+  }
+
+  if (isAdmin) {
+    return next();
+  }
+
+  return res.status(403).json({
+    success: false,
+    message: "Access denied. Doctor or Admin privileges required.",
+  });
+});
+
+export { protect, admin, doctor, doctorOrAdmin };

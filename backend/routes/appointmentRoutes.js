@@ -6,7 +6,7 @@ import {
   respondToAppointment,
   getDoctorAppointments
 } from "../controllers/appointmentController.js";
-import { protect, admin, doctor} from "../middlewares/authMiddleware.js";
+import { protect, admin, doctor, doctorOrAdmin } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
@@ -22,8 +22,8 @@ router.get("/usersAppointments", protect, getUserAppointments);
 // Route for doctors to accept or reject appointments
 router.get("/doctorsAppointments", protect, doctor, getDoctorAppointments);
 
-// Route for doctors to accept or reject appointments
-router.put("/respond", protect, doctor, respondToAppointment);
+// Route for doctors or admin to accept/reject appointments (pet owners get real-time notification)
+router.put("/respond", protect, doctorOrAdmin, respondToAppointment);
 
 export default router;
 
