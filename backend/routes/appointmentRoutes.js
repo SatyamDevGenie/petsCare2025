@@ -4,17 +4,18 @@ import {
   getAllAppointments,
   getUserAppointments,
   respondToAppointment,
-  getDoctorAppointments
+  getDoctorAppointments,
+  sendEmailToAppointmentUser,
 } from "../controllers/appointmentController.js";
-import { protect, admin, doctor, doctorOrAdmin } from "../middlewares/authMiddleware.js";
+import { protect, admin, doctor } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
 // Route for pet owners to book an appointment
 router.post("/book", protect, bookAppointment);
 
-// Route for inside userInfo.doctor OR userInfo.isAdmin to get all appointments
-router.get("/all", protect, getAllAppointments);
+// Route for Admin only – view all appointments (pet owners + doctors)
+router.get("/all", protect, admin, getAllAppointments);
 
 // Route for pet owners to get their appointments
 router.get("/usersAppointments", protect, getUserAppointments);
@@ -22,8 +23,11 @@ router.get("/usersAppointments", protect, getUserAppointments);
 // Route for doctors to accept or reject appointments
 router.get("/doctorsAppointments", protect, doctor, getDoctorAppointments);
 
-// Route for doctors or admin to accept/reject appointments (pet owners get real-time notification)
-router.put("/respond", protect, doctorOrAdmin, respondToAppointment);
+// Doctor only: accept / reject / cancel appointments (pet owners get notification + email)
+router.put("/respond", protect, doctor, respondToAppointment);
+
+// Admin only: send email to pet owner for an appointment (from dashboard "Send Email" button)
+router.post("/send-email", protect, admin, sendEmailToAppointmentUser);
 
 export default router;
 

@@ -31,9 +31,9 @@ const appointmentSchema = mongoose.Schema(
     },
     doctorResponse: {
       type: String,
-      enum: ["Accepted", "Rejected", "Pending"],
+      enum: ["Accepted", "Rejected", "Cancelled", "Pending"],
       default: "Pending",
-    }, // Track doctor's response
+    }, // Track doctor's response (only doctors can set this)
   },
   { timestamps: true }
 );

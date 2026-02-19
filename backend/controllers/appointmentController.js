@@ -1,6 +1,7 @@
 import asyncHandler from "express-async-handler";
 import Appointment from "../models/appointmentModel.js";
 import Notification from "../models/notificationModel.js";
+import { sendAppointmentStatusEmail, sendAdminMessageEmail } from "../utils/emailService.js";
 
 // Book an appointment (Only petOwners can book)
 const bookAppointment = asyncHandler(async (req, res) => {
@@ -75,15 +76,15 @@ const getUserAppointments = asyncHandler(async (req, res) => {
 
 
 
-// Doctor or Admin Accept/Reject Appointment (sends real-time notification to pet owner)
+// Doctor only: Accept / Reject / Cancel appointment (sends real-time notification + email to pet owner)
 const respondToAppointment = asyncHandler(async (req, res) => {
   try {
     const { appointmentId, response } = req.body;
 
-    if (!["Accepted", "Rejected"].includes(response)) {
+    if (!["Accepted", "Rejected", "Cancelled"].includes(response)) {
       return res.status(400).json({
         success: false,
-        message: "Response must be either 'Accepted' or 'Rejected'.",
+        message: "Response must be 'Accepted', 'Rejected', or 'Cancelled'.",
       });
     }
 
@@ -99,37 +100,41 @@ const respondToAppointment = asyncHandler(async (req, res) => {
       });
     }
 
-    const isAdmin = req.user && req.user.isAdmin;
-    const isDoctor = req.doctor && req.doctor._id;
     const doctorId = appointment.doctor?._id || appointment.doctor;
     const petOwnerId = appointment.petOwner?._id || appointment.petOwner;
 
-    if (isDoctor) {
-      if (doctorId.toString() !== req.doctor._id.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: "You are not authorized to respond to this appointment.",
-        });
-      }
-    } else if (!isAdmin) {
+    // Only the doctor assigned to this appointment can respond
+    if (!req.doctor || doctorId.toString() !== req.doctor._id.toString()) {
       return res.status(403).json({
         success: false,
-        message: "Access denied. Doctor or Admin required.",
+        message: "Only the doctor assigned to this appointment can accept, reject, or cancel it.",
       });
     }
 
-    const actedBy = isDoctor ? req.doctor.name : "Admin";
+    const actedBy = req.doctor.name;
     appointment.doctorResponse = response;
     appointment.status = response;
     const updatedAppointment = await appointment.save();
 
-    // Create in-app notification for the pet owner (recipient is User _id)
-    const notificationType = response === "Accepted" ? "appointment_accepted" : "appointment_rejected";
-    const title = response === "Accepted" ? "Appointment Accepted" : "Appointment Rejected";
+    // Create in-app notification for the pet owner
+    const notificationType =
+      response === "Accepted"
+        ? "appointment_accepted"
+        : response === "Cancelled"
+          ? "appointment_cancelled"
+          : "appointment_rejected";
+    const title =
+      response === "Accepted"
+        ? "Appointment Accepted"
+        : response === "Cancelled"
+          ? "Appointment Cancelled"
+          : "Appointment Rejected";
     const message =
       response === "Accepted"
         ? `Your appointment with Dr. ${appointment.doctor?.name || "the doctor"} for ${appointment.pet?.name || "your pet"} has been accepted by ${actedBy}.`
-        : `Your appointment with Dr. ${appointment.doctor?.name || "the doctor"} for ${appointment.pet?.name || "your pet"} has been rejected by ${actedBy}.`;
+        : response === "Cancelled"
+          ? `Your appointment with Dr. ${appointment.doctor?.name || "the doctor"} for ${appointment.pet?.name || "your pet"} has been cancelled by ${actedBy}.`
+          : `Your appointment with Dr. ${appointment.doctor?.name || "the doctor"} for ${appointment.pet?.name || "your pet"} has been rejected by ${actedBy}.`;
 
     await Notification.create({
       recipient: appointment.petOwner._id,
@@ -150,6 +155,29 @@ const respondToAppointment = asyncHandler(async (req, res) => {
         message,
         actedBy,
       });
+    }
+
+    // Send email to pet owner (from ADMIN_EMAIL) about accept/reject/cancel
+    const ownerEmail = appointment.petOwner?.email || (appointment.petOwner && appointment.petOwner.email);
+    const ownerName = appointment.petOwner?.name || "Pet Owner";
+    const doctorName = appointment.doctor?.name || "the doctor";
+    const petName = appointment.pet?.name || "your pet";
+    const appointmentDateFormatted = appointment.appointmentDate
+      ? new Date(appointment.appointmentDate).toLocaleString("en-IN", {
+          dateStyle: "medium",
+          timeStyle: "short",
+        })
+      : "scheduled date";
+    if (ownerEmail) {
+      sendAppointmentStatusEmail(
+        ownerEmail,
+        ownerName,
+        response,
+        doctorName,
+        petName,
+        appointmentDateFormatted,
+        actedBy
+      );
     }
 
     res.status(200).json({
@@ -189,7 +217,87 @@ const getDoctorAppointments = asyncHandler(async (req, res) => {
 });
 
 
-export { bookAppointment, getAllAppointments, getUserAppointments, respondToAppointment, getDoctorAppointments };
+// Admin only: send email to pet owner for an appointment (e.g. from "Send Email" button on dashboard)
+const sendEmailToAppointmentUser = asyncHandler(async (req, res) => {
+  const { appointmentId, subject, message } = req.body;
+
+  if (!appointmentId) {
+    return res.status(400).json({
+      success: false,
+      message: "Please provide appointmentId.",
+    });
+  }
+
+  const appointment = await Appointment.findById(appointmentId)
+    .populate("petOwner", "name email")
+    .populate("doctor", "name specialization")
+    .populate("pet", "name");
+
+  if (!appointment) {
+    return res.status(404).json({
+      success: false,
+      message: "Appointment not found.",
+    });
+  }
+
+  const ownerEmail = appointment.petOwner?.email;
+  const ownerName = appointment.petOwner?.name || "Pet Owner";
+  if (!ownerEmail) {
+    return res.status(400).json({
+      success: false,
+      message: "Pet owner email not found for this appointment.",
+    });
+  }
+
+  const doctorName = appointment.doctor?.name || "the doctor";
+  const petName = appointment.pet?.name || "your pet";
+  const appointmentDateFormatted = appointment.appointmentDate
+    ? new Date(appointment.appointmentDate).toLocaleString("en-IN", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      })
+    : "scheduled date";
+  const status = appointment.status || appointment.doctorResponse || "Pending";
+
+  const htmlBody = message
+    ? `<div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
+      <h2 style="color: #059669;">Message from PetsCare</h2>
+      <p>Hello ${ownerName},</p>
+      <p>${message}</p>
+      <p><strong>Appointment details:</strong> Dr. ${doctorName}, ${petName}, ${appointmentDateFormatted}, Status: ${status}.</p>
+      <br/><p style="color: #6b7280; font-size: 14px;">This message was sent from <strong>PetsCare</strong>.</p>
+    </div>`
+    : `<div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
+      <h2 style="color: #059669;">Update on your appointment</h2>
+      <p>Hello ${ownerName},</p>
+      <p>This is an update regarding your appointment with <strong>Dr. ${doctorName}</strong> for <strong>${petName}</strong> on <strong>${appointmentDateFormatted}</strong>.</p>
+      <p>Current status: <strong>${status}</strong>.</p>
+      <p>If you have any questions, please log in to PetsCare or contact us.</p>
+      <br/><p style="color: #6b7280; font-size: 14px;">This message was sent from <strong>PetsCare</strong>.</p>
+    </div>`;
+
+  const result = await sendAdminMessageEmail(
+    ownerEmail,
+    ownerName,
+    subject || "PetsCare – Update on your appointment",
+    htmlBody
+  );
+
+  if (!result.sent) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to send email. Check server logs and ADMIN_EMAIL_APP_PASSWORD in .env.",
+      error: result.error,
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Email sent successfully to the pet owner.",
+  });
+});
+
+export { bookAppointment, getAllAppointments, getUserAppointments, respondToAppointment, getDoctorAppointments, sendEmailToAppointmentUser };
 
 
 
