@@ -218,6 +218,7 @@ const getDoctorAppointments = asyncHandler(async (req, res) => {
 
 
 // Admin only: send email to pet owner for an appointment (e.g. from "Send Email" button on dashboard)
+// req.body: appointmentId (required), subject (optional), message (optional) – these are request params, not model fields
 const sendEmailToAppointmentUser = asyncHandler(async (req, res) => {
   const { appointmentId, subject, message } = req.body;
 
@@ -227,6 +228,13 @@ const sendEmailToAppointmentUser = asyncHandler(async (req, res) => {
       message: "Please provide appointmentId.",
     });
   }
+  // Optional: require subject and message from client (uncomment if needed)
+  // if (!subject || !message) {
+  //   return res.status(400).json({
+  //     success: false,
+  //     message: "Please provide subject and message.",
+  //   });
+  // }
 
   const appointment = await Appointment.findById(appointmentId)
     .populate("petOwner", "name email")
