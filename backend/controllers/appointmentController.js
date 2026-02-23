@@ -1,7 +1,26 @@
 import asyncHandler from "express-async-handler";
 import Appointment from "../models/appointmentModel.js";
 import Notification from "../models/notificationModel.js";
+import Doctor from "../models/doctorModel.js";
 import { sendAppointmentStatusEmail, sendAdminMessageEmail } from "../utils/emailService.js";
+
+// Helper: check if a date/time falls within doctor's schedule (schedule: [{ dayOfWeek, startTime, endTime }])
+function isWithinDoctorSchedule(date, schedule) {
+  if (!schedule || !Array.isArray(schedule) || schedule.length === 0) return true;
+  const d = new Date(date);
+  const dayOfWeek = d.getDay();
+  const [hours, minutes] = [d.getHours(), d.getMinutes()];
+  const slotMinutes = hours * 60 + minutes;
+  for (const slot of schedule) {
+    if (slot.dayOfWeek !== dayOfWeek) continue;
+    const [startH, startM] = (slot.startTime || "00:00").split(":").map(Number);
+    const [endH, endM] = (slot.endTime || "23:59").split(":").map(Number);
+    const startMinutes = startH * 60 + startM;
+    const endMinutes = endH * 60 + endM;
+    if (slotMinutes >= startMinutes && slotMinutes < endMinutes) return true;
+  }
+  return false;
+}
 
 // Book an appointment (Only petOwners can book)
 const bookAppointment = asyncHandler(async (req, res) => {
@@ -21,11 +40,34 @@ const bookAppointment = asyncHandler(async (req, res) => {
     });
   }
 
+  const doctor = await Doctor.findById(doctorId);
+  if (!doctor) {
+    return res.status(404).json({
+      success: false,
+      message: "Doctor not found.",
+    });
+  }
+
+  const appointmentDateTime = new Date(appointmentDate);
+  if (isNaN(appointmentDateTime.getTime())) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid appointment date or time.",
+    });
+  }
+
+  if (doctor.schedule && doctor.schedule.length > 0 && !isWithinDoctorSchedule(appointmentDateTime, doctor.schedule)) {
+    return res.status(400).json({
+      success: false,
+      message: "Selected date or time is not within this doctor's availability. Please choose a slot that matches their schedule.",
+    });
+  }
+
   const appointment = new Appointment({
     petOwner: req.user._id,
     pet: petId,
     doctor: doctorId,
-    appointmentDate,
+    appointmentDate: appointmentDateTime,
     query,
     status: "Pending",
     doctorResponse: "Pending",

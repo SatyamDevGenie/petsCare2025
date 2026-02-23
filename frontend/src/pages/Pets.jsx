@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { getPets } from '../store/slices/petSlice';
 import Card from '../components/common/Card';
@@ -22,18 +23,22 @@ export default function Pets() {
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {(list || []).map((p) => (
-          <Card key={p._id} className="overflow-hidden">
-            {p.image ? (
-              <img src={p.image} alt={p.name} className="w-full h-40 object-cover" />
-            ) : (
-              <div className="w-full h-40 bg-primary-100 flex items-center justify-center text-5xl">🐾</div>
-            )}
-            <div className="p-4">
-              <h2 className="text-lg font-semibold text-gray-900">{p.name}</h2>
-              <p className="text-sm text-gray-600">{p.type} • {p.breed}</p>
-              <p className="text-sm text-gray-500">Age: {p.age} • {p.gender}</p>
-            </div>
-          </Card>
+          <Link key={p._id} to={`/pets/${p._id}`}>
+            <Card className="overflow-hidden h-full hover:shadow-md hover:border-primary-200 transition">
+              {p.image ? (
+                <div className="w-full h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
+                  <img src={p.image} alt={p.name} className="w-full h-full object-contain object-center" />
+                </div>
+              ) : (
+                <div className="w-full h-48 bg-primary-100 flex items-center justify-center text-5xl">🐾</div>
+              )}
+              <div className="p-4">
+                <h2 className="text-lg font-semibold text-gray-900">{p.name}</h2>
+                <p className="text-sm text-gray-600">{p.type} • {p.breed}</p>
+                <p className="text-sm text-gray-500">Age: {p.age} • {p.gender}</p>
+              </div>
+            </Card>
+          </Link>
         ))}
       </div>
       {(!list || list.length === 0) && (

@@ -3,7 +3,11 @@ import express from "express";
 import chalk from "chalk";
 import cors from "cors";
 import path from "path";
+import { fileURLToPath } from "url";
 import { createServer } from "http";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirnameServer = path.dirname(__filename);
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 import connectDB from "./config/db.js";
@@ -29,9 +33,10 @@ app.use(cors());
 
 
 
-// Correct way to serve static files
-const __dirname = path.resolve();
-app.use("/uploads", express.static(path.join(__dirname, "/uploads")));
+// Serve static files: uploads + seed images (backend/data/images)
+const __dirnameRoot = path.resolve();
+app.use("/uploads", express.static(path.join(__dirnameRoot, "uploads")));
+app.use("/images", express.static(path.join(__dirnameServer, "data", "images")));
 
 
 

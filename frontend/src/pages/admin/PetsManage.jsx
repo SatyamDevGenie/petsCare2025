@@ -95,9 +95,11 @@ export default function PetsManage() {
         {(list || []).map((p) => (
           <Card key={p._id}>
             {p.image ? (
-              <img src={p.image} alt="" className="w-full h-32 object-cover rounded-t-lg -m-6 mb-4" />
+              <div className="w-full h-50 bg-gray-100 flex items-center justify-center overflow-hidden rounded-t-lg -m-6 mb-4">
+                <img src={p.image} alt="" className="w-full h-full object-contain object-center" />
+              </div>
             ) : (
-              <div className="w-full h-32 bg-primary-100 rounded-t-lg -m-6 mb-4 flex items-center justify-center text-4xl">🐾</div>
+              <div className="w-full h-80 bg-primary-100 rounded-t-lg -m-6 mb-4 flex items-center justify-center text-4xl">🐾</div>
             )}
             <h3 className="font-semibold text-gray-900">{p.name}</h3>
             <p className="text-sm text-gray-600">{p.type} • {p.breed} • {p.age} yrs • {p.gender}</p>

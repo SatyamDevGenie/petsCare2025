@@ -12,6 +12,7 @@ import ServiceDetail from './pages/ServiceDetail';
 import Doctors from './pages/Doctors';
 import DoctorDetail from './pages/DoctorDetail';
 import Pets from './pages/Pets';
+import PetDetail from './pages/PetDetail';
 
 import PetOwnerDashboard from './pages/petowner/Dashboard';
 import BookAppointment from './pages/petowner/BookAppointment';
@@ -41,6 +42,7 @@ function AppRoutes() {
         <Route path="/doctors" element={<Doctors />} />
         <Route path="/doctors/:id" element={<DoctorDetail />} />
         <Route path="/pets" element={<Pets />} />
+        <Route path="/pets/:id" element={<PetDetail />} />
 
         <Route path="/dashboard" element={<ProtectedRoute allowedRole="user"><PetOwnerDashboard /></ProtectedRoute>} />
         <Route path="/dashboard/book" element={<ProtectedRoute allowedRole="user"><BookAppointment /></ProtectedRoute>} />

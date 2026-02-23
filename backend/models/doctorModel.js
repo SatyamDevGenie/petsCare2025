@@ -40,8 +40,16 @@ const doctorSchema = mongoose.Schema(
     },
     availability: {
       type: String,
-      required: false, // Optional field
+      required: false, // Optional field – human-readable summary
     },
+    // Structured schedule for validation: dayOfWeek 0=Sun, 1=Mon … 6=Sat; times in 24h "HH:mm"
+    schedule: [
+      {
+        dayOfWeek: { type: Number, min: 0, max: 6 },
+        startTime: { type: String }, // e.g. "18:00"
+        endTime: { type: String },   // e.g. "20:00"
+      },
+    ],
   },
   { timestamps: true }
 );
