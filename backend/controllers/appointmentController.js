@@ -22,14 +22,14 @@ function isWithinDoctorSchedule(date, schedule) {
   return false;
 }
 
-// Book an appointment (Only petOwners can book)
+// Book an appointment (Only petOwners can book) – pet owner provides pet name & breed
 const bookAppointment = asyncHandler(async (req, res) => {
-  const { petId, doctorId, appointmentDate, query } = req.body;
+  const { petName, petBreed, doctorId, appointmentDate, query } = req.body;
 
-  if (!petId || !doctorId || !appointmentDate) {
+  if (!petName || !petBreed || !doctorId || !appointmentDate) {
     return res.status(400).json({
       success: false,
-      message: "Please provide petId, doctorId, and appointmentDate.",
+      message: "Please provide pet name, pet breed, doctorId, and appointmentDate.",
     });
   }
 
@@ -65,7 +65,8 @@ const bookAppointment = asyncHandler(async (req, res) => {
 
   const appointment = new Appointment({
     petOwner: req.user._id,
-    pet: petId,
+    petName: petName.trim(),
+    petBreed: petBreed.trim(),
     doctor: doctorId,
     appointmentDate: appointmentDateTime,
     query,
@@ -171,12 +172,13 @@ const respondToAppointment = asyncHandler(async (req, res) => {
         : response === "Cancelled"
           ? "Appointment Cancelled"
           : "Appointment Rejected";
+    const petDisplayName = appointment.pet?.name || appointment.petName || "your pet";
     const message =
       response === "Accepted"
-        ? `Your appointment with Dr. ${appointment.doctor?.name || "the doctor"} for ${appointment.pet?.name || "your pet"} has been accepted by ${actedBy}.`
+        ? `Your appointment with Dr. ${appointment.doctor?.name || "the doctor"} for ${petDisplayName} has been accepted by ${actedBy}.`
         : response === "Cancelled"
-          ? `Your appointment with Dr. ${appointment.doctor?.name || "the doctor"} for ${appointment.pet?.name || "your pet"} has been cancelled by ${actedBy}.`
-          : `Your appointment with Dr. ${appointment.doctor?.name || "the doctor"} for ${appointment.pet?.name || "your pet"} has been rejected by ${actedBy}.`;
+          ? `Your appointment with Dr. ${appointment.doctor?.name || "the doctor"} for ${petDisplayName} has been cancelled by ${actedBy}.`
+          : `Your appointment with Dr. ${appointment.doctor?.name || "the doctor"} for ${petDisplayName} has been rejected by ${actedBy}.`;
 
     await Notification.create({
       recipient: appointment.petOwner._id,
@@ -203,7 +205,7 @@ const respondToAppointment = asyncHandler(async (req, res) => {
     const ownerEmail = appointment.petOwner?.email || (appointment.petOwner && appointment.petOwner.email);
     const ownerName = appointment.petOwner?.name || "Pet Owner";
     const doctorName = appointment.doctor?.name || "the doctor";
-    const petName = appointment.pet?.name || "your pet";
+    const petNameForEmail = appointment.pet?.name || appointment.petName || "your pet";
     const appointmentDateFormatted = appointment.appointmentDate
       ? new Date(appointment.appointmentDate).toLocaleString("en-IN", {
           dateStyle: "medium",
@@ -300,7 +302,7 @@ const sendEmailToAppointmentUser = asyncHandler(async (req, res) => {
   }
 
   const doctorName = appointment.doctor?.name || "the doctor";
-  const petName = appointment.pet?.name || "your pet";
+  const petNameForEmail = appointment.pet?.name || appointment.petName || "your pet";
   const appointmentDateFormatted = appointment.appointmentDate
     ? new Date(appointment.appointmentDate).toLocaleString("en-IN", {
         dateStyle: "medium",
@@ -314,13 +316,13 @@ const sendEmailToAppointmentUser = asyncHandler(async (req, res) => {
       <h2 style="color: #059669;">Message from PetsCare</h2>
       <p>Hello ${ownerName},</p>
       <p>${message}</p>
-      <p><strong>Appointment details:</strong> Dr. ${doctorName}, ${petName}, ${appointmentDateFormatted}, Status: ${status}.</p>
+      <p><strong>Appointment details:</strong> Dr. ${doctorName}, ${petNameForEmail}, ${appointmentDateFormatted}, Status: ${status}.</p>
       <br/><p style="color: #6b7280; font-size: 14px;">This message was sent from <strong>PetsCare</strong>.</p>
     </div>`
     : `<div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
       <h2 style="color: #059669;">Update on your appointment</h2>
       <p>Hello ${ownerName},</p>
-      <p>This is an update regarding your appointment with <strong>Dr. ${doctorName}</strong> for <strong>${petName}</strong> on <strong>${appointmentDateFormatted}</strong>.</p>
+      <p>This is an update regarding your appointment with <strong>Dr. ${doctorName}</strong> for <strong>${petNameForEmail}</strong> on <strong>${appointmentDateFormatted}</strong>.</p>
       <p>Current status: <strong>${status}</strong>.</p>
       <p>If you have any questions, please log in to PetsCare or contact us.</p>
       <br/><p style="color: #6b7280; font-size: 14px;">This message was sent from <strong>PetsCare</strong>.</p>

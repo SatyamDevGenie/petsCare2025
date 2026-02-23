@@ -1,15 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { bookAppointment } from '../../store/slices/appointmentSlice';
-import { getPets } from '../../store/slices/petSlice';
 import { getDoctors } from '../../store/slices/doctorSlice';
 import { clearAppointmentError } from '../../store/slices/appointmentSlice';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
-
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 // Build time options (every 30 min) between start and end for a given schedule slot
 function getTimeOptionsForSlot(slot, intervalMinutes = 30) {
@@ -27,7 +25,8 @@ function getTimeOptionsForSlot(slot, intervalMinutes = 30) {
 }
 
 export default function BookAppointment() {
-  const [petId, setPetId] = useState('');
+  const [petName, setPetName] = useState('');
+  const [petBreed, setPetBreed] = useState('');
   const [doctorId, setDoctorId] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
@@ -35,7 +34,6 @@ export default function BookAppointment() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, error, actionSuccess } = useSelector((s) => s.appointments);
-  const { list: pets } = useSelector((s) => s.pets);
   const { list: doctors } = useSelector((s) => s.doctors);
 
   const selectedDoctor = useMemo(
@@ -62,12 +60,16 @@ export default function BookAppointment() {
   const minDate = new Date().toISOString().slice(0, 10);
 
   useEffect(() => {
-    dispatch(getPets());
     dispatch(getDoctors());
   }, [dispatch]);
 
   useEffect(() => {
+    if (error) toast.error(error);
+  }, [error]);
+
+  useEffect(() => {
     if (actionSuccess === 'Booked') {
+      toast.success('Appointment booked successfully');
       dispatch(clearAppointmentError());
       navigate('/dashboard/appointments');
     }
@@ -83,38 +85,38 @@ export default function BookAppointment() {
     dispatch(clearAppointmentError());
     if (!selectedDate || !selectedTime) return;
     const appointmentDate = new Date(`${selectedDate}T${selectedTime}:00`);
-    dispatch(bookAppointment({ petId, doctorId, appointmentDate, query: query || undefined }));
+    dispatch(bookAppointment({ petName: petName.trim(), petBreed: petBreed.trim(), doctorId, appointmentDate, query: query || undefined }));
   };
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">Book Appointment</h1>
-      <p className="text-gray-600 mb-6">Select pet, doctor, and a date & time that matches the doctor&apos;s availability.</p>
+      <h1 className="text-xl font-semibold text-slate-900 mb-1">Book Appointment</h1>
+      <p className="text-sm text-slate-500 mb-6">Enter your pet&apos;s name and breed, choose a doctor, and pick a date & time that matches the doctor&apos;s availability.</p>
 
       <Card className="max-w-lg">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Pet</label>
-            <select
-              value={petId}
-              onChange={(e) => setPetId(e.target.value)}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            >
-              <option value="">Select pet</option>
-              {(pets || []).map((p) => (
-                <option key={p._id} value={p._id}>{p.name} ({p.type}, {p.breed})</option>
-              ))}
-            </select>
-          </div>
+          <Input
+            label="Pet name"
+            value={petName}
+            onChange={(e) => setPetName(e.target.value)}
+            placeholder="e.g. Max, Bella"
+            required
+          />
+          <Input
+            label="Pet breed"
+            value={petBreed}
+            onChange={(e) => setPetBreed(e.target.value)}
+            placeholder="e.g. Labrador, Persian"
+            required
+          />
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Doctor</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Doctor</label>
             <select
               value={doctorId}
               onChange={(e) => { setDoctorId(e.target.value); setSelectedDate(''); setSelectedTime(''); }}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
             >
               <option value="">Select doctor</option>
               {(doctors || []).map((d) => (
@@ -129,14 +131,14 @@ export default function BookAppointment() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
             <input
               type="date"
               value={selectedDate}
               min={minDate}
               onChange={(e) => setSelectedDate(e.target.value)}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
             />
             {dateInvalidForDoctor && (
               <p className="mt-1 text-sm text-amber-700 bg-amber-50 px-2 py-1 rounded">
@@ -146,13 +148,13 @@ export default function BookAppointment() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Time</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Time</label>
             <select
               value={selectedTime}
               onChange={(e) => setSelectedTime(e.target.value)}
               required
               disabled={!selectedDate || timeOptions.length === 0}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:opacity-60"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 disabled:opacity-60"
             >
               <option value="">Select time</option>
               {timeOptions.map((t) => (
@@ -160,17 +162,17 @@ export default function BookAppointment() {
               ))}
             </select>
             {selectedDate && timeOptions.length === 0 && scheduleForSelectedDate.length === 0 && selectedDoctor?.schedule?.length > 0 && (
-              <p className="mt-1 text-sm text-gray-500">Select an available date for this doctor to see time slots.</p>
+              <p className="mt-1 text-sm text-slate-500">Select an available date for this doctor to see time slots.</p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Query / Notes (optional)</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Query / Notes (optional)</label>
             <textarea
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
               placeholder="Any specific concerns?"
             />
           </div>

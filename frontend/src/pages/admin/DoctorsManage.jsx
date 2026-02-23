@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { toast } from 'react-toastify';
 import { getDoctors, createDoctor, updateDoctor, deleteDoctor, clearDoctorError } from '../../store/slices/doctorSlice';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
@@ -20,6 +21,10 @@ export default function DoctorsManage() {
   useEffect(() => {
     dispatch(getDoctors());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (error) toast.error(error);
+  }, [error]);
 
   const openAdd = () => {
     setForm({ name: '', email: '', password: '', specialization: '', contactNumber: '', notes: '', profileImage: '' });
@@ -59,15 +64,27 @@ export default function DoctorsManage() {
     if (modal.edit) {
       const payload = { id: modal.edit._id, name: form.name, email: form.email, specialization: form.specialization, contactNumber: form.contactNumber, notes: form.notes, profileImage: form.profileImage || undefined };
       if (form.password) payload.password = form.password;
-      dispatch(updateDoctor(payload)).then((r) => r.meta?.requestStatus === 'fulfilled' && closeModal());
+      dispatch(updateDoctor(payload)).then((r) => {
+        if (r.meta?.requestStatus === 'fulfilled') {
+          toast.success('Doctor updated');
+          closeModal();
+        }
+      });
     } else {
       if (!form.password) return;
-      dispatch(createDoctor(form)).then((r) => r.meta?.requestStatus === 'fulfilled' && closeModal());
+      dispatch(createDoctor(form)).then((r) => {
+        if (r.meta?.requestStatus === 'fulfilled') {
+          toast.success('Doctor added');
+          closeModal();
+        }
+      });
     }
   };
 
   const handleDelete = (id) => {
-    if (window.confirm('Delete this doctor?')) dispatch(deleteDoctor(id));
+    if (window.confirm('Delete this doctor?')) {
+      dispatch(deleteDoctor(id)).then((r) => r.meta?.requestStatus === 'fulfilled' && toast.success('Doctor removed'));
+    }
   };
 
   if (loading && (!list || list.length === 0)) return <Spinner className="py-20" />;
@@ -76,8 +93,8 @@ export default function DoctorsManage() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Manage Doctors</h1>
-          <p className="text-gray-600">Add, edit, or remove doctors.</p>
+          <h1 className="text-2xl font-bold text-slate-900">Manage Doctors</h1>
+          <p className="text-slate-600">Add, edit, or remove doctors.</p>
         </div>
         <Button onClick={openAdd}>Add Doctor</Button>
       </div>
@@ -94,10 +111,10 @@ export default function DoctorsManage() {
                 <div className="w-14 h-14 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center text-2xl">👨‍⚕️</div>
               )}
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-gray-900">{d.name}</h3>
+                <h3 className="font-semibold text-slate-900">{d.name}</h3>
                 <p className="text-sm text-primary-600">{d.specialization}</p>
-                <p className="text-sm text-gray-500 truncate">{d.email}</p>
-                {d.contactNumber && <p className="text-sm text-gray-500">{d.contactNumber}</p>}
+                <p className="text-sm text-slate-500 truncate">{d.email}</p>
+                {d.contactNumber && <p className="text-sm text-slate-500">{d.contactNumber}</p>}
               </div>
             </div>
             <div className="mt-3 flex gap-2">
@@ -108,7 +125,7 @@ export default function DoctorsManage() {
         ))}
       </div>
       {(!list || list.length === 0) && !loading && (
-        <Card><p className="text-gray-500 text-center py-8">No doctors. Add one above.</p></Card>
+        <Card><p className="text-slate-500 text-center py-8">No doctors. Add one above.</p></Card>
       )}
 
       <Modal open={modal.open} onClose={closeModal} title={modal.edit ? 'Edit Doctor' : 'Add Doctor'}>
@@ -132,13 +149,13 @@ export default function DoctorsManage() {
           <Input label="Specialization" value={form.specialization} onChange={(e) => setForm((f) => ({ ...f, specialization: e.target.value }))} required />
           <Input label="Contact number" value={form.contactNumber} onChange={(e) => setForm((f) => ({ ...f, contactNumber: e.target.value }))} />
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-            <textarea value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+            <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label>
+            <textarea value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={2} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Profile image (optional)</label>
-            <input type="file" accept="image/jpeg,image/jpg,image/png" onChange={onProfileImageUpload} disabled={uploading} className="block w-full text-sm text-gray-500 file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:bg-primary-50 file:text-primary-700" />
-            {form.profileImage && <p className="mt-1 text-xs text-gray-500 truncate">{form.profileImage}</p>}
+            <label className="block text-sm font-medium text-slate-700 mb-1">Profile image (optional)</label>
+            <input type="file" accept="image/jpeg,image/jpg,image/png" onChange={onProfileImageUpload} disabled={uploading} className="block w-full text-sm text-slate-500 file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:bg-primary-50 file:text-primary-700" />
+            {form.profileImage && <p className="mt-1 text-xs text-slate-500 truncate">{form.profileImage}</p>}
           </div>
           <div className="flex gap-2 justify-end">
             <Button type="button" variant="secondary" onClick={closeModal}>Cancel</Button>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { toast } from 'react-toastify';
 import { getDoctorAppointments, respondToAppointment, clearAppointmentError } from '../../store/slices/appointmentSlice';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
@@ -10,10 +11,10 @@ function StatusBadge({ status }) {
     Pending: 'bg-amber-100 text-amber-800',
     Accepted: 'bg-green-100 text-green-800',
     Rejected: 'bg-red-100 text-red-800',
-    Cancelled: 'bg-gray-100 text-gray-800',
+    Cancelled: 'bg-slate-100 text-slate-800',
   };
   return (
-    <span className={`inline-block px-2 py-1 rounded text-sm font-medium ${colors[status] || 'bg-gray-100'}`}>
+    <span className={`inline-block px-2 py-1 rounded text-sm font-medium ${colors[status] || 'bg-slate-100'}`}>
       {status}
     </span>
   );
@@ -28,10 +29,16 @@ export default function DoctorAppointments() {
     dispatch(getDoctorAppointments());
   }, [dispatch]);
 
+  useEffect(() => {
+    if (error) toast.error(error);
+  }, [error]);
+
   const handleRespond = (appointmentId, response) => {
     setRespondingId(appointmentId);
     dispatch(clearAppointmentError());
-    dispatch(respondToAppointment({ appointmentId, response })).finally(() => setRespondingId(null));
+    dispatch(respondToAppointment({ appointmentId, response })).then((res) => {
+      if (res.meta?.requestStatus === 'fulfilled') toast.success(`Appointment ${response.toLowerCase()} successfully`);
+    }).finally(() => setRespondingId(null));
   };
 
   if (loading && (!list || list.length === 0)) return <Spinner className="py-20" />;
@@ -41,25 +48,22 @@ export default function DoctorAppointments() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">My Appointments</h1>
-      <p className="text-gray-600 mb-6">Accept, reject, or cancel appointments.</p>
-
-      {actionSuccess && (
-        <div className="mb-4 p-3 rounded-lg bg-green-50 text-green-800 text-sm">{actionSuccess}</div>
-      )}
+      <h1 className="text-xl font-semibold text-slate-900 mb-1">My Appointments</h1>
+      <p className="text-sm text-slate-500 mb-6">Accept, reject, or cancel appointments.</p>
 
       <div className="space-y-4">
         {appointments.map((a) => (
           <Card key={a._id}>
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className="font-medium text-gray-900">
-                  {a.petOwner?.name ?? '—'} • Pet: {a.pet?.name ?? '—'}
+                <p className="font-medium text-slate-900">
+                  {a.petOwner?.name ?? '—'} • Pet: {a.pet?.name ?? a.petName ?? '—'}
+                  {(a.pet?.breed || a.petBreed) && ` (${a.pet?.breed ?? a.petBreed})`}
                 </p>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-slate-600">
                   {a.appointmentDate ? new Date(a.appointmentDate).toLocaleString() : '—'}
                 </p>
-                {a.query && <p className="text-sm text-gray-500 mt-1">{a.query}</p>}
+                {a.query && <p className="text-sm text-slate-500 mt-1">{a.query}</p>}
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <StatusBadge status={a.status} />
@@ -95,7 +99,7 @@ export default function DoctorAppointments() {
       </div>
       {appointments.length === 0 && (
         <Card>
-          <p className="text-gray-500 text-center py-8">No appointments assigned to you.</p>
+          <p className="text-slate-500 text-center py-8">No appointments assigned to you.</p>
         </Card>
       )}
     </div>

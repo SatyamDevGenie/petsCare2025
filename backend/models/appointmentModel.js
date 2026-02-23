@@ -9,9 +9,11 @@ const appointmentSchema = mongoose.Schema(
     },
     pet: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Pet", // Reference to the pet
-      required: true,
+      ref: "Pet", // Optional: link to Pet if needed later
+      required: false,
     },
+    petName: { type: String, required: false }, // Name of pet as given by pet owner at booking
+    petBreed: { type: String, required: false }, // Breed as given by pet owner at booking
     doctor: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Doctor", // Reference to the doctor

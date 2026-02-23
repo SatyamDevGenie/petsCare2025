@@ -168,62 +168,6 @@ const pets = [
     image: "/images/Rotweiler.png",
   },
 
-  {
-    name: "Cooper",
-    type: "Dog",
-    breed: "Golden Retriever",
-    age: 3,
-    gender: "Male",
-    vaccinationRecords: [
-      { vaccineName: "Rabies", dateAdministered: new Date("2024-01-15"), nextDueDate: new Date("2025-01-15") },
-      { vaccineName: "Distemper", dateAdministered: new Date("2024-01-15"), nextDueDate: new Date("2025-01-15") },
-      { vaccineName: "Parvovirus", dateAdministered: new Date("2024-01-15"), nextDueDate: new Date("2025-01-15") },
-    ],
-    isNeutered: true,
-    notes: "Cooper is a gentle, intelligent Golden Retriever who loves everyone he meets. Perfect for families with children, he enjoys fetch, swimming, and outdoor adventures. His friendly nature and eagerness to please make him an ideal therapy and family dog. Regular grooming keeps his beautiful coat shiny and healthy.",
-    image: "/images/labrodor.png",
-  },
-  {
-    name: "Daisy",
-    type: "Dog",
-    breed: "Beagle",
-    age: 2,
-    gender: "Female",
-    vaccinationRecords: [
-      { vaccineName: "Rabies", dateAdministered: new Date("2023-11-20"), nextDueDate: new Date("2024-11-20") },
-      { vaccineName: "Distemper", dateAdministered: new Date("2023-11-20"), nextDueDate: new Date("2024-11-20") },
-    ],
-    isNeutered: true,
-    notes: "Daisy is a curious and cheerful Beagle with a love for sniffing and exploring. She is great with kids and other dogs, and her compact size makes her perfect for apartment living. She enjoys puzzle toys and scent games. Her friendly bark and wagging tail bring joy to every household.",
-    image: "/images/shepherd.png",
-  },
-  {
-    name: "Oliver",
-    type: "Cat",
-    breed: "British Shorthair",
-    age: 4,
-    gender: "Male",
-    vaccinationRecords: [
-      { vaccineName: "Rabies", dateAdministered: new Date("2023-12-01"), nextDueDate: new Date("2024-12-01") },
-      { vaccineName: "Feline Distemper", dateAdministered: new Date("2023-11-15"), nextDueDate: new Date("2024-11-15") },
-    ],
-    isNeutered: true,
-    notes: "Oliver is a calm, dignified British Shorthair with a plush blue-gray coat. He enjoys quiet companionship and is content watching the world from a sunny windowsill. Low-maintenance and affectionate on his own terms, he is ideal for busy professionals. His round face and sweet expression make him irresistible.",
-    image: "/images/max.png",
-  },
-  {
-    name: "Charlie",
-    type: "Bird",
-    breed: "Budgerigar",
-    age: 1,
-    gender: "Male",
-    vaccinationRecords: [
-      { vaccineName: "Avian Polyomavirus", dateAdministered: new Date("2024-02-01"), nextDueDate: new Date("2025-02-01") },
-    ],
-    isNeutered: false,
-    notes: "Charlie is a lively and social budgie who loves to chirp and mimic sounds. He thrives on interaction, toys, and a varied diet of seeds and fresh veggies. With proper care and attention, he can learn words and tricks. A cheerful companion perfect for bird enthusiasts.",
-    image: "/images/milo.png",
-  },
 ];
 
 export default pets;

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { toast } from 'react-toastify';
 import { getPets, createPet, updatePet, deletePet, getVaccinationRecords, clearPetError } from '../../store/slices/petSlice';
 import { uploadImage } from '../../api/upload';
 import Button from '../../components/common/Button';
@@ -23,6 +24,10 @@ export default function PetsManage() {
   useEffect(() => {
     dispatch(getPets());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (error) toast.error(error);
+  }, [error]);
 
   const openAdd = () => {
     setForm({ name: '', type: 'Dog', breed: '', age: '', gender: 'Male', notes: '', image: '' });
@@ -68,7 +73,9 @@ export default function PetsManage() {
   };
 
   const handleDelete = (id) => {
-    if (window.confirm('Delete this pet?')) dispatch(deletePet(id));
+    if (window.confirm('Delete this pet?')) {
+      dispatch(deletePet(id)).then((r) => r.meta?.requestStatus === 'fulfilled' && toast.success('Pet removed'));
+    }
   };
 
   const openVacc = (pet) => {
@@ -83,8 +90,8 @@ export default function PetsManage() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Manage Pets</h1>
-          <p className="text-gray-600">Add, edit, or remove pets.</p>
+          <h1 className="text-2xl font-bold text-slate-900">Manage Pets</h1>
+          <p className="text-slate-600">Add, edit, or remove pets.</p>
         </div>
         <Button onClick={openAdd}>Add Pet</Button>
       </div>
@@ -101,8 +108,8 @@ export default function PetsManage() {
             ) : (
               <div className="w-full h-80 bg-primary-100 rounded-t-lg -m-6 mb-4 flex items-center justify-center text-4xl">🐾</div>
             )}
-            <h3 className="font-semibold text-gray-900">{p.name}</h3>
-            <p className="text-sm text-gray-600">{p.type} • {p.breed} • {p.age} yrs • {p.gender}</p>
+            <h3 className="font-semibold text-slate-900">{p.name}</h3>
+            <p className="text-sm text-slate-600">{p.type} • {p.breed} • {p.age} yrs • {p.gender}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               <Button variant="secondary" onClick={() => openEdit(p)}>Edit</Button>
               <Button variant="outline" onClick={() => openVacc(p)}>Vaccination</Button>
@@ -112,17 +119,17 @@ export default function PetsManage() {
         ))}
       </div>
       {(!list || list.length === 0) && !loading && (
-        <Card><p className="text-gray-500 text-center py-8">No pets. Add one above.</p></Card>
+        <Card><p className="text-slate-500 text-center py-8">No pets. Add one above.</p></Card>
       )}
 
       <Modal open={vaccModal.open} onClose={closeVacc} title={`Vaccination records – ${vaccModal.petName}`}>
         <div className="space-y-2">
-          {(vaccinationRecords || []).length === 0 && <p className="text-gray-500 text-sm">No vaccination records.</p>}
+          {(vaccinationRecords || []).length === 0 && <p className="text-slate-500 text-sm">No vaccination records.</p>}
           {(vaccinationRecords || []).map((r, i) => (
             <div key={i} className="p-3 bg-gray-50 rounded-lg text-sm">
-              <p className="font-medium text-gray-900">{r.vaccineName}</p>
-              <p className="text-gray-600">Date: {r.dateAdministered ? new Date(r.dateAdministered).toLocaleDateString() : '—'}</p>
-              {r.nextDueDate && <p className="text-gray-500">Next: {new Date(r.nextDueDate).toLocaleDateString()}</p>}
+              <p className="font-medium text-slate-900">{r.vaccineName}</p>
+              <p className="text-slate-600">Date: {r.dateAdministered ? new Date(r.dateAdministered).toLocaleDateString() : '—'}</p>
+              {r.nextDueDate && <p className="text-slate-500">Next: {new Date(r.nextDueDate).toLocaleDateString()}</p>}
             </div>
           ))}
         </div>
@@ -132,11 +139,11 @@ export default function PetsManage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input label="Name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required />
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Type</label>
             <select
               value={form.type}
               onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
             >
               {PET_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
@@ -144,20 +151,20 @@ export default function PetsManage() {
           <Input label="Breed" value={form.breed} onChange={(e) => setForm((f) => ({ ...f, breed: e.target.value }))} required />
           <Input label="Age" type="number" min="0" value={form.age} onChange={(e) => setForm((f) => ({ ...f, age: e.target.value }))} required />
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Gender</label>
             <select
               value={form.gender}
               onChange={(e) => setForm((f) => ({ ...f, gender: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
             >
               {GENDERS.map((g) => <option key={g} value={g}>{g}</option>)}
             </select>
           </div>
           <Input label="Notes (optional)" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Image (optional)</label>
-            <input type="file" accept="image/jpeg,image/jpg,image/png" onChange={onImageUpload} disabled={uploading} className="block w-full text-sm text-gray-500 file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:bg-primary-50 file:text-primary-700" />
-            {form.image && <p className="mt-1 text-xs text-gray-500 truncate">{form.image}</p>}
+            <label className="block text-sm font-medium text-slate-700 mb-1">Image (optional)</label>
+            <input type="file" accept="image/jpeg,image/jpg,image/png" onChange={onImageUpload} disabled={uploading} className="block w-full text-sm text-slate-500 file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:bg-primary-50 file:text-primary-700" />
+            {form.image && <p className="mt-1 text-xs text-slate-500 truncate">{form.image}</p>}
           </div>
           <div className="flex gap-2 justify-end">
             <Button type="button" variant="secondary" onClick={closeModal}>Cancel</Button>

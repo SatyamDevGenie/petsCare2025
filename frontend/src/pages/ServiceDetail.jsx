@@ -22,8 +22,8 @@ export default function ServiceDetail() {
     <div>
       <Link to="/services" className="text-primary-600 hover:underline mb-4 inline-block">← Back to Services</Link>
       <Card>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">{current.title}</h1>
-        <p className="text-gray-600 mb-4">{current.description}</p>
+        <h1 className="text-2xl font-bold text-slate-900 mb-2">{current.title}</h1>
+        <p className="text-slate-600 mb-4">{current.description}</p>
         <p className="text-primary-600 font-semibold text-lg">₹{current.price ?? '—'}</p>
       </Card>
     </div>

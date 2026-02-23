@@ -39,19 +39,19 @@ export default function PetDetail() {
             )}
           </div>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-gray-900">{current.name}</h1>
+            <h1 className="text-2xl font-bold text-slate-900">{current.name}</h1>
             <p className="text-primary-600 font-medium mt-1">{current.type} • {current.breed}</p>
-            <p className="text-gray-600 mt-2">Age: {current.age} • {current.gender}</p>
+            <p className="text-slate-600 mt-2">Age: {current.age} • {current.gender}</p>
             {current.notes && (
-              <p className="text-gray-600 mt-4">{current.notes}</p>
+              <p className="text-slate-600 mt-4">{current.notes}</p>
             )}
             {records.length > 0 && (
               <div className="mt-6">
-                <h2 className="font-semibold text-gray-900 mb-2">Vaccination records</h2>
+                <h2 className="font-semibold text-slate-900 mb-2">Vaccination records</h2>
                 <ul className="space-y-2">
                   {records.map((r, i) => (
-                    <li key={i} className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-                      <span className="font-medium text-gray-900">{r.vaccineName}</span>
+                    <li key={i} className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">
+                      <span className="font-medium text-slate-900">{r.vaccineName}</span>
                       {' • '}
                       {r.dateAdministered ? new Date(r.dateAdministered).toLocaleDateString() : '—'}
                       {r.nextDueDate && ` • Next: ${new Date(r.nextDueDate).toLocaleDateString()}`}

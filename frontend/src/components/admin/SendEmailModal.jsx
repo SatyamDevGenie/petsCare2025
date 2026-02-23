@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { toast } from 'react-toastify';
 import { sendEmailToAppointmentUser, clearAppointmentError } from '../../store/slices/appointmentSlice';
 import Input from '../common/Input';
 import Button from '../common/Button';
@@ -11,11 +12,16 @@ export default function SendEmailModal({ open, onClose, appointmentId, ownerName
   const dispatch = useDispatch();
   const { error } = useSelector((s) => s.appointments);
 
+  useEffect(() => {
+    if (error) toast.error(error);
+  }, [error]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     dispatch(clearAppointmentError());
     dispatch(sendEmailToAppointmentUser({ appointmentId, subject, message })).then((res) => {
       if (res.meta?.requestStatus === 'fulfilled') {
+        toast.success('Email sent successfully');
         setSubject('PetsCare – Update on your appointment');
         setMessage('');
         onClose();
@@ -25,7 +31,7 @@ export default function SendEmailModal({ open, onClose, appointmentId, ownerName
 
   return (
     <Modal open={open} onClose={onClose} title="Send email to pet owner">
-      {ownerName && <p className="text-sm text-gray-600 mb-4">To: {ownerName}</p>}
+      {ownerName && <p className="text-sm text-slate-600 mb-4">To: {ownerName}</p>}
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
           label="Subject"
@@ -33,12 +39,12 @@ export default function SendEmailModal({ open, onClose, appointmentId, ownerName
           onChange={(e) => setSubject(e.target.value)}
         />
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Message</label>
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            className="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
             placeholder="Optional message body..."
           />
         </div>

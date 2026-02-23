@@ -1,8 +1,23 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-  margin: 0;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+@layer base {
+  body {
+    @apply antialiased text-gray-900;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* React Toastify overrides for SaaS look */
+.Toastify__toast {
+  @apply rounded-xl shadow-lg border border-slate-200 font-medium;
+}
+.Toastify__toast--success {
+  @apply bg-white text-slate-900;
+}
+.Toastify__toast--error {
+  @apply bg-white text-red-700;
 }

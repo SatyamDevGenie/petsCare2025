@@ -13,6 +13,10 @@ export default function Notifications() {
     dispatch(getMyNotifications());
   }, [dispatch]);
 
+  useEffect(() => {
+    if (error) toast.error(error);
+  }, [error]);
+
   const handleMarkRead = (id) => dispatch(markAsRead(id));
   const handleMarkAllRead = () => dispatch(markAllAsRead());
 
@@ -25,8 +29,8 @@ export default function Notifications() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
-          <p className="text-gray-600">{unreadCount ?? 0} unread</p>
+          <h1 className="text-xl font-semibold text-slate-900">Notifications</h1>
+          <p className="text-slate-600">{unreadCount ?? 0} unread</p>
         </div>
         {unreadCount > 0 && (
           <Button variant="secondary" onClick={handleMarkAllRead}>
@@ -43,10 +47,10 @@ export default function Notifications() {
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h3 className="font-medium text-gray-900">{n.title}</h3>
-                <p className="text-sm text-gray-600 mt-1">{n.message}</p>
-                {n.actedBy && <p className="text-xs text-gray-500 mt-1">By: {n.actedBy}</p>}
-                <p className="text-xs text-gray-400 mt-1">
+                <h3 className="font-medium text-slate-900">{n.title}</h3>
+                <p className="text-sm text-slate-600 mt-1">{n.message}</p>
+                {n.actedBy && <p className="text-xs text-slate-500 mt-1">By: {n.actedBy}</p>}
+                <p className="text-xs text-slate-400 mt-1">
                   {n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}
                 </p>
               </div>
@@ -65,7 +69,7 @@ export default function Notifications() {
       </div>
       {notifications.length === 0 && (
         <Card>
-          <p className="text-gray-500 text-center py-8">No notifications.</p>
+          <p className="text-slate-500 text-center py-8">No notifications.</p>
         </Card>
       )}
     </div>

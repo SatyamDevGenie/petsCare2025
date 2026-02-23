@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { registerUser } from '../store/slices/authSlice';
 import { clearError } from '../store/slices/authSlice';
 import Input from '../components/common/Input';
@@ -17,6 +18,11 @@ export default function Register() {
   const navigate = useNavigate();
   const { token, loading, error } = useSelector((s) => s.auth);
 
+  useEffect(() => {
+    if (error) toast.error(error);
+    if (localError) toast.error(localError);
+  }, [error, localError]);
+
   if (token) return <Navigate to="/dashboard" replace />;
 
   const handleSubmit = (e) => {
@@ -32,15 +38,18 @@ export default function Register() {
       return;
     }
     dispatch(registerUser({ name, email, password })).then((res) => {
-      if (res.meta?.requestStatus === 'fulfilled') navigate('/dashboard', { replace: true });
+      if (res.meta?.requestStatus === 'fulfilled') {
+        toast.success('Account created successfully');
+        navigate('/dashboard', { replace: true });
+      }
     });
   };
 
   return (
     <div className="max-w-md mx-auto">
       <Card>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Create account</h1>
-        <p className="text-gray-600 mb-6">Register as a pet owner.</p>
+        <h1 className="text-xl font-semibold text-slate-900 mb-1">Create account</h1>
+        <p className="text-sm text-slate-500 mb-6">Register as a pet owner.</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
@@ -75,16 +84,16 @@ export default function Register() {
             autoComplete="new-password"
           />
           {(error || localError) && (
-            <div className="p-3 rounded-lg bg-red-50 text-red-700 text-sm">{localError || error}</div>
+            <div className="p-3 rounded-lg bg-red-50 text-red-700 text-sm border border-red-100">{localError || error}</div>
           )}
           <Button type="submit" loading={loading} className="w-full">
             Register
           </Button>
         </form>
 
-        <p className="mt-4 text-center text-sm text-gray-600">
+        <p className="mt-5 text-center text-sm text-slate-500">
           Already have an account?{' '}
-          <Link to="/login" className="text-primary-600 font-medium hover:underline">
+          <Link to="/login" className="font-medium text-primary-600 hover:text-primary-700">
             Sign in
           </Link>
         </p>
