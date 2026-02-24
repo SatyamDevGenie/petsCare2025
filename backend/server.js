@@ -8,6 +8,7 @@ import { createServer } from "http";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirnameServer = path.dirname(__filename);
+const projectRoot = path.resolve(__dirnameServer, "..");
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 import connectDB from "./config/db.js";
@@ -18,11 +19,12 @@ import doctorRoutes from "../backend/routes/doctorRoutes.js";
 import appointmentRoutes from "../backend/routes/appointmentRoutes.js";
 import uploadRoutes from "../backend/routes/uploadRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
+import aiRoutes from "./routes/aiRoutes.js";
 import cookieParser from "cookie-parser";
 import { errorHandler, notFound } from "./middlewares/errorMiddleware.js";
 
 
-dotenv.config(); // For Env
+dotenv.config({ path: path.join(projectRoot, ".env") }); // Load .env from project root
 
 connectDB(); // connection to Mongodb
 
@@ -48,6 +50,7 @@ app.use("/api/services", serviceRoutes)
 app.use("/api/doctors", doctorRoutes)
 app.use("/api/appointment", appointmentRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/ai", aiRoutes);
 app.use("/api/uploads", uploadRoutes);
 
 app.get("/", (req, res) => {

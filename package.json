@@ -15,6 +15,7 @@
   "author": "Satyam Sawant",
   "license": "UNLICENSED",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@types/jest": "^29.5.14",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
