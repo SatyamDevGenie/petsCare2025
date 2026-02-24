@@ -36,6 +36,10 @@ const appointmentSchema = mongoose.Schema(
       enum: ["Accepted", "Rejected", "Cancelled", "Pending"],
       default: "Pending",
     }, // Track doctor's response (only doctors can set this)
+    rejectionReason: {
+      type: String,
+      required: false,
+    }, // Required when doctor rejects; message to pet owner
   },
   { timestamps: true }
 );

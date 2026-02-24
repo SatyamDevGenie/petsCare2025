@@ -27,6 +27,8 @@ export default function DoctorAppointments() {
   const [respondingId, setRespondingId] = useState(null);
   const [summarizeOpen, setSummarizeOpen] = useState(false);
   const [summarizeInitialNotes, setSummarizeInitialNotes] = useState('');
+  const [rejectModal, setRejectModal] = useState({ open: false, appointmentId: null });
+  const [rejectReason, setRejectReason] = useState('');
 
   useEffect(() => {
     dispatch(getDoctorAppointments());
@@ -36,12 +38,32 @@ export default function DoctorAppointments() {
     if (error) toast.error(error);
   }, [error]);
 
-  const handleRespond = (appointmentId, response) => {
+  const handleRespond = (appointmentId, response, rejectionReason) => {
     setRespondingId(appointmentId);
     dispatch(clearAppointmentError());
-    dispatch(respondToAppointment({ appointmentId, response })).then((res) => {
+    dispatch(respondToAppointment({ appointmentId, response, rejectionReason })).then((res) => {
       if (res.meta?.requestStatus === 'fulfilled') toast.success(`Appointment ${response.toLowerCase()} successfully`);
     }).finally(() => setRespondingId(null));
+  };
+
+  const openRejectModal = (appointmentId) => {
+    setRejectModal({ open: true, appointmentId });
+    setRejectReason('');
+  };
+
+  const closeRejectModal = () => {
+    setRejectModal({ open: false, appointmentId: null });
+    setRejectReason('');
+  };
+
+  const submitReject = () => {
+    const trimmed = rejectReason.trim();
+    if (!trimmed) {
+      toast.error('Please provide a reason for rejection.');
+      return;
+    }
+    handleRespond(rejectModal.appointmentId, 'Rejected', trimmed);
+    closeRejectModal();
   };
 
   if (loading && (!list || list.length === 0)) return <Spinner className="py-20" />;
@@ -91,7 +113,7 @@ export default function DoctorAppointments() {
                     <Button
                       variant="danger"
                       disabled={respondingId === a._id}
-                      onClick={() => handleRespond(a._id, 'Rejected')}
+                      onClick={() => openRejectModal(a._id)}
                     >
                       Reject
                     </Button>
@@ -120,6 +142,28 @@ export default function DoctorAppointments() {
         onClose={() => setSummarizeOpen(false)}
         initialNotes={summarizeInitialNotes}
       />
+
+      {rejectModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={closeRejectModal}>
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">Reject appointment</h3>
+            <p className="text-sm text-slate-600 mb-3">Please provide a reason for rejecting this appointment (required).</p>
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="e.g. Slot not available, fully booked..."
+              className="w-full border border-slate-300 rounded-md p-2 text-sm min-h-[80px] focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              autoFocus
+            />
+            <div className="flex justify-end gap-2 mt-4">
+              <Button variant="secondary" onClick={closeRejectModal}>Cancel</Button>
+              <Button variant="danger" onClick={submitReject} disabled={!rejectReason.trim() || respondingId === rejectModal.appointmentId}>
+                {respondingId === rejectModal.appointmentId ? '...' : 'Reject'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

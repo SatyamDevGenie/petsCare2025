@@ -122,13 +122,23 @@ const getUserAppointments = asyncHandler(async (req, res) => {
 // Doctor only: Accept / Reject / Cancel appointment (sends real-time notification + email to pet owner)
 const respondToAppointment = asyncHandler(async (req, res) => {
   try {
-    const { appointmentId, response } = req.body;
+    const { appointmentId, response, rejectionReason: rawReason } = req.body;
 
     if (!["Accepted", "Rejected", "Cancelled"].includes(response)) {
       return res.status(400).json({
         success: false,
         message: "Response must be 'Accepted', 'Rejected', or 'Cancelled'.",
       });
+    }
+
+    if (response === "Rejected") {
+      const rejectionReason = typeof rawReason === "string" ? rawReason.trim() : "";
+      if (!rejectionReason) {
+        return res.status(400).json({
+          success: false,
+          message: "Please provide a reason for rejecting this appointment.",
+        });
+      }
     }
 
     const appointment = await Appointment.findById(appointmentId)
@@ -155,8 +165,10 @@ const respondToAppointment = asyncHandler(async (req, res) => {
     }
 
     const actedBy = req.doctor.name;
+    const rejectionReason = response === "Rejected" && typeof rawReason === "string" ? rawReason.trim() : "";
     appointment.doctorResponse = response;
     appointment.status = response;
+    appointment.rejectionReason = response === "Rejected" ? rejectionReason : undefined;
     const updatedAppointment = await appointment.save();
 
     // Create in-app notification for the pet owner
@@ -173,12 +185,13 @@ const respondToAppointment = asyncHandler(async (req, res) => {
           ? "Appointment Cancelled"
           : "Appointment Rejected";
     const petDisplayName = appointment.pet?.name || appointment.petName || "your pet";
+    const baseRejectMsg = `Your appointment with Dr. ${appointment.doctor?.name || "the doctor"} for ${petDisplayName} has been rejected by ${actedBy}.`;
     const message =
       response === "Accepted"
         ? `Your appointment with Dr. ${appointment.doctor?.name || "the doctor"} for ${petDisplayName} has been accepted by ${actedBy}.`
         : response === "Cancelled"
           ? `Your appointment with Dr. ${appointment.doctor?.name || "the doctor"} for ${petDisplayName} has been cancelled by ${actedBy}.`
-          : `Your appointment with Dr. ${appointment.doctor?.name || "the doctor"} for ${petDisplayName} has been rejected by ${actedBy}.`;
+          : rejectionReason ? `${baseRejectMsg} Reason: ${rejectionReason}` : baseRejectMsg;
 
     await Notification.create({
       recipient: appointment.petOwner._id,
@@ -198,6 +211,7 @@ const respondToAppointment = asyncHandler(async (req, res) => {
         title,
         message,
         actedBy,
+        ...(response === "Rejected" && updatedAppointment.rejectionReason && { rejectionReason: updatedAppointment.rejectionReason }),
       });
     }
 
@@ -218,9 +232,10 @@ const respondToAppointment = asyncHandler(async (req, res) => {
         ownerName,
         response,
         doctorName,
-        petName,
+        petNameForEmail,
         appointmentDateFormatted,
-        actedBy
+        actedBy,
+        response === "Rejected" ? (appointment.rejectionReason || "") : ""
       );
     }
 

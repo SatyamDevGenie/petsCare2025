@@ -27,6 +27,7 @@ const createTransporter = () => {
  * @param {string} petName - Pet's name
  * @param {string} appointmentDate - Formatted appointment date
  * @param {string} actedBy - Doctor name (who performed the action)
+ * @param {string} [rejectionReason] - Reason for rejection (when status is Rejected)
  */
 export const sendAppointmentStatusEmail = async (
   toEmail,
@@ -35,13 +36,19 @@ export const sendAppointmentStatusEmail = async (
   doctorName,
   petName,
   appointmentDate,
-  actedBy
+  actedBy,
+  rejectionReason = ""
 ) => {
   const transporter = createTransporter();
   if (!transporter) return;
 
   const isAccepted = status === "Accepted";
+  const isRejected = status === "Rejected";
   const subject = `PetsCare – Your appointment has been ${status}`;
+  const reasonBlock =
+    isRejected && rejectionReason
+      ? `<p><strong>Reason:</strong> ${rejectionReason.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`
+      : "";
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
       <h2 style="color: ${isAccepted ? "#059669" : "#dc2626"};">
@@ -53,6 +60,7 @@ export const sendAppointmentStatusEmail = async (
         scheduled on <strong>${appointmentDate}</strong> has been <strong>${status.toLowerCase()}</strong>
         by ${actedBy}.
       </p>
+      ${reasonBlock}
       ${isAccepted ? "<p>Please visit the clinic on the scheduled date. Contact us if you need to reschedule.</p>" : "<p>If you have questions or wish to book another slot, please log in to PetsCare or contact us.</p>"}
       <br/>
       <p style="color: #6b7280; font-size: 14px;">

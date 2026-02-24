@@ -55,10 +55,12 @@ export const getAllAppointments = createAsyncThunk(
 
 export const respondToAppointment = createAsyncThunk(
   'appointments/respond',
-  async ({ appointmentId, response }, { getState, rejectWithValue }) => {
+  async ({ appointmentId, response, rejectionReason }, { getState, rejectWithValue }) => {
     try {
       const config = getAuthConfig(getState);
-      const { data } = await api.put('/appointment/respond', { appointmentId, response }, config);
+      const body = { appointmentId, response };
+      if (response === 'Rejected' && rejectionReason != null) body.rejectionReason = rejectionReason;
+      const { data } = await api.put('/appointment/respond', body, config);
       return data?.appointment ?? data;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || err.message);

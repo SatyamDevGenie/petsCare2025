@@ -49,6 +49,9 @@ export default function MyAppointments() {
                   {a.appointmentDate ? new Date(a.appointmentDate).toLocaleString() : '—'}
                 </p>
                 {a.query && <p className="text-sm text-slate-500 mt-1">{a.query}</p>}
+                {a.status === 'Rejected' && a.rejectionReason && (
+                  <p className="text-sm text-red-700 mt-2 font-medium">Doctor&apos;s message: {a.rejectionReason}</p>
+                )}
               </div>
               <StatusBadge status={a.status} />
             </div>
