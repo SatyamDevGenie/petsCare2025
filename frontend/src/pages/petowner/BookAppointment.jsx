@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import { bookAppointment } from '../../store/slices/appointmentSlice';
 import { getDoctors } from '../../store/slices/doctorSlice';
 import { clearAppointmentError } from '../../store/slices/appointmentSlice';
+import { getPetRecommendations } from '../../api/ai';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
@@ -31,6 +32,11 @@ export default function BookAppointment() {
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [query, setQuery] = useState('');
+  const [recPetType, setRecPetType] = useState('Dog');
+  const [recBreed, setRecBreed] = useState('');
+  const [recAge, setRecAge] = useState('');
+  const [recLoading, setRecLoading] = useState(false);
+  const [recResult, setRecResult] = useState('');
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, error, actionSuccess } = useSelector((s) => s.appointments);
@@ -86,6 +92,25 @@ export default function BookAppointment() {
     if (!selectedDate || !selectedTime) return;
     const appointmentDate = new Date(`${selectedDate}T${selectedTime}:00`);
     dispatch(bookAppointment({ petName: petName.trim(), petBreed: petBreed.trim(), doctorId, appointmentDate, query: query || undefined }));
+  };
+
+  const handleGetRecommendations = async () => {
+    const ageNum = parseInt(recAge, 10);
+    if (Number.isNaN(ageNum) || ageNum < 0 || ageNum > 30) {
+      toast.error('Please enter a valid age (0–30 years).');
+      return;
+    }
+    setRecLoading(true);
+    setRecResult('');
+    try {
+      const { recommendations } = await getPetRecommendations(recPetType, ageNum, recBreed);
+      setRecResult(recommendations || 'No recommendations generated.');
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Failed to load recommendations.';
+      toast.error(msg);
+    } finally {
+      setRecLoading(false);
+    }
   };
 
   return (
@@ -186,6 +211,59 @@ export default function BookAppointment() {
             Book Appointment
           </Button>
         </form>
+      </Card>
+
+      <Card className="max-w-lg mt-8">
+        <h2 className="text-base font-semibold text-slate-900 mb-1">Recommended vaccinations & care</h2>
+        <p className="text-sm text-slate-500 mb-4">Based on your pet&apos;s type, breed, and age, we suggest these vaccinations and care to keep them healthy.</p>
+        <div className="space-y-3 mb-4">
+          <div className="flex flex-wrap gap-3 items-end">
+            <div className="flex-1 min-w-[120px]">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Pet type</label>
+              <select
+                value={recPetType}
+                onChange={(e) => setRecPetType(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+              >
+                <option value="Dog">Dog</option>
+                <option value="Cat">Cat</option>
+                <option value="Bird">Bird</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div className="flex-1 min-w-[140px]">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Breed</label>
+              <input
+                type="text"
+                value={recBreed}
+                onChange={(e) => setRecBreed(e.target.value)}
+                placeholder="e.g. Labrador, Persian"
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+              />
+            </div>
+            <div className="w-24">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Age (yrs)</label>
+              <input
+                type="number"
+                min={0}
+                max={30}
+                value={recAge}
+                onChange={(e) => setRecAge(e.target.value)}
+                placeholder="0"
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+              />
+            </div>
+          </div>
+          <Button type="button" variant="secondary" onClick={handleGetRecommendations} loading={recLoading} disabled={recLoading}>
+            Get recommendations
+          </Button>
+        </div>
+        {recResult && (
+          <div className="p-4 rounded-lg bg-primary-50/50 border border-primary-100">
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">What we recommend for your pet</p>
+            <div className="text-sm text-slate-800 whitespace-pre-wrap">{recResult}</div>
+          </div>
+        )}
       </Card>
     </div>
   );

@@ -241,4 +241,84 @@ const summarizeNotes = asyncHandler(async (req, res) => {
   });
 });
 
-export { chat, summarizeNotes };
+const PET_RECOMMENDATIONS_SYSTEM_PROMPT = `You are a veterinary care advisor for PetsCare. Given a pet's type, breed (if provided), and age in years, list the recommended vaccinations and preventive care we should provide to keep the pet healthy. Include: core vaccines, booster schedule if relevant, deworming, flea/tick prevention, and any age-specific or breed-specific care where applicable (e.g. large breeds, brachycephalic breeds, certain purebred susceptibilities). Format as a clear bullet list (6–12 bullets). Be specific and practical. Only recommend vaccinations and preventive care; do not diagnose or treat conditions. If age is under 1 year, mention puppy/kitten vaccination schedule. Output only the bullet list, no preamble or disclaimer.`;
+
+/**
+ * @desc    Get vaccination & care recommendations for a pet based on type and age (public).
+ * @route   POST /api/ai/pet-recommendations
+ * @access  Public
+ */
+const petRecommendations = asyncHandler(async (req, res) => {
+  const { petType, age, breed } = req.body;
+
+  const type = typeof petType === "string" ? petType.trim() : "";
+  const breedStr = typeof breed === "string" ? breed.trim() : "";
+  const ageNum = age !== undefined && age !== null ? Number(age) : NaN;
+
+  if (!type) {
+    return res.status(400).json({
+      success: false,
+      message: "Please provide 'petType' (e.g. Dog, Cat, Bird).",
+    });
+  }
+  if (Number.isNaN(ageNum) || ageNum < 0 || ageNum > 30) {
+    return res.status(400).json({
+      success: false,
+      message: "Please provide a valid 'age' in years (0–30).",
+    });
+  }
+
+  const groqKey = process.env.GROQ_API_KEY;
+  const geminiKey = process.env.GEMINI_API_KEY;
+
+  if (!groqKey && !geminiKey) {
+    return res.status(503).json({
+      success: false,
+      message: "AI not configured. Add GROQ_API_KEY or GEMINI_API_KEY to .env",
+    });
+  }
+
+  const userMessage = breedStr
+    ? `Pet type: ${type}. Breed: ${breedStr}. Age: ${ageNum} year(s). List recommended vaccinations and preventive care to keep this pet healthy, including any breed-specific considerations.`
+    : `Pet type: ${type}. Age: ${ageNum} year(s). List recommended vaccinations and preventive care to keep this pet healthy.`;
+  let lastError = null;
+
+  if (groqKey) {
+    try {
+      const { text } = await callGroq(groqKey, PET_RECOMMENDATIONS_SYSTEM_PROMPT, userMessage);
+      return res.status(200).json({ success: true, data: { recommendations: text } });
+    } catch (err) {
+      lastError = err;
+      console.error("Groq pet-recommendations error:", err?.message || err);
+    }
+  }
+
+  if (geminiKey) {
+    const fullPrompt = `${PET_RECOMMENDATIONS_SYSTEM_PROMPT}\n\n${userMessage}`;
+    for (const modelId of GEMINI_MODELS) {
+      try {
+        const { text } = await callGemini(geminiKey, modelId, fullPrompt);
+        return res.status(200).json({ success: true, data: { recommendations: text } });
+      } catch (err) {
+        lastError = err;
+        console.error(`Gemini pet-recommendations (${modelId}):`, err?.message || err);
+        if (err?.status === 404) continue;
+        if (err?.status === 429 || err?.status === 403) break;
+      }
+    }
+  }
+
+  const msg = String(lastError?.message || lastError || "");
+  if (lastError?.status === 429 || msg.includes("429") || msg.includes("quota") || msg.includes("rate")) {
+    return res.status(429).json({
+      success: false,
+      message: "Too many requests. Please wait a minute and try again.",
+    });
+  }
+  return res.status(500).json({
+    success: false,
+    message: "Recommendations are temporarily unavailable. Try again in a moment.",
+  });
+});
+
+export { chat, summarizeNotes, petRecommendations };

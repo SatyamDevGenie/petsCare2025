@@ -21,3 +21,17 @@ export async function summarizeVisitNotes(notes, getState) {
   const { data } = await api.post('/ai/summarize-notes', { notes }, config);
   return data?.data ?? { summary: '' };
 }
+
+/**
+ * Get vaccination & care recommendations for a pet (public).
+ * @param {string} petType - e.g. Dog, Cat, Bird, Other
+ * @param {number} age - Age in years (0–30)
+ * @param {string} [breed] - Optional breed (e.g. Labrador, Persian)
+ * @returns {Promise<{ recommendations: string }>}
+ */
+export async function getPetRecommendations(petType, age, breed = '') {
+  const body = { petType, age };
+  if (breed && String(breed).trim()) body.breed = String(breed).trim();
+  const { data } = await api.post('/ai/pet-recommendations', body);
+  return data?.data ?? { recommendations: '' };
+}
