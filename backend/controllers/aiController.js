@@ -173,4 +173,72 @@ const chat = asyncHandler(async (req, res) => {
   });
 });
 
-export { chat };
+const SUMMARIZE_SYSTEM_PROMPT = `You are summarizing veterinary visit notes for the pet owner. Given the raw notes from a vet visit below, write 2–3 clear, friendly sentences that the pet owner can easily understand. Use simple language. Include: what was done or found, and any follow-up if mentioned. Do not add information that is not in the notes. Do not give new medical advice. Output only the summary, no preamble.`;
+
+/**
+ * @desc    Summarize visit notes into a short, pet-owner-friendly summary (Doctor or Admin only).
+ * @route   POST /api/ai/summarize-notes
+ * @access  Protected (doctor or admin)
+ */
+const summarizeNotes = asyncHandler(async (req, res) => {
+  const { notes } = req.body;
+
+  if (!notes || typeof notes !== "string" || !notes.trim()) {
+    return res.status(400).json({
+      success: false,
+      message: "Please provide non-empty 'notes' in the request body.",
+    });
+  }
+
+  const groqKey = process.env.GROQ_API_KEY;
+  const geminiKey = process.env.GEMINI_API_KEY;
+
+  if (!groqKey && !geminiKey) {
+    return res.status(503).json({
+      success: false,
+      message: "AI not configured. Add GROQ_API_KEY or GEMINI_API_KEY to .env",
+    });
+  }
+
+  const userMessage = notes.trim();
+  let lastError = null;
+
+  if (groqKey) {
+    try {
+      const { text } = await callGroq(groqKey, SUMMARIZE_SYSTEM_PROMPT, userMessage);
+      return res.status(200).json({ success: true, data: { summary: text } });
+    } catch (err) {
+      lastError = err;
+      console.error("Groq summarize error:", err?.message || err);
+    }
+  }
+
+  if (geminiKey) {
+    const fullPrompt = `${SUMMARIZE_SYSTEM_PROMPT}\n\nRaw visit notes:\n${userMessage}`;
+    for (const modelId of GEMINI_MODELS) {
+      try {
+        const { text } = await callGemini(geminiKey, modelId, fullPrompt);
+        return res.status(200).json({ success: true, data: { summary: text } });
+      } catch (err) {
+        lastError = err;
+        console.error(`Gemini summarize (${modelId}):`, err?.message || err);
+        if (err?.status === 404) continue;
+        if (err?.status === 429 || err?.status === 403) break;
+      }
+    }
+  }
+
+  const msg = String(lastError?.message || lastError || "");
+  if (lastError?.status === 429 || msg.includes("429") || msg.includes("quota") || msg.includes("rate")) {
+    return res.status(429).json({
+      success: false,
+      message: "Too many requests. Please wait a minute and try again.",
+    });
+  }
+  return res.status(500).json({
+    success: false,
+    message: "Summary is temporarily unavailable. Try again in a moment.",
+  });
+});
+
+export { chat, summarizeNotes };

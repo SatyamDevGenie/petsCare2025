@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getAllAppointments, clearAppointmentError } from '../../store/slices/appointmentSlice';
 import SendEmailModal from '../../components/admin/SendEmailModal';
+import SummarizeNotesModal from '../../components/SummarizeNotesModal';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import Spinner from '../../components/common/Spinner';
@@ -23,16 +24,29 @@ function StatusBadge({ status }) {
 export default function AllAppointments() {
   const dispatch = useDispatch();
   const { list, loading, error, actionSuccess } = useSelector((s) => s.appointments);
-  const [emailModal, setEmailModal] = useState({ open: false, id: null, ownerName: '' });
+  const [emailModal, setEmailModal] = useState({ open: false, id: null, ownerName: '', initialMessage: '' });
+  const [summarizeModal, setSummarizeModal] = useState({ open: false, appointmentId: null, ownerName: '', initialNotes: '' });
 
   useEffect(() => {
     dispatch(getAllAppointments());
   }, [dispatch]);
 
-  const openEmail = (id, ownerName) => setEmailModal({ open: true, id, ownerName });
+  const openEmail = (id, ownerName, initialMessage = '') =>
+    setEmailModal({ open: true, id, ownerName, initialMessage });
   const closeEmail = () => {
-    setEmailModal({ open: false, id: null, ownerName: '' });
+    setEmailModal({ open: false, id: null, ownerName: '', initialMessage: '' });
     dispatch(clearAppointmentError());
+  };
+
+  const openSummarize = (appointmentId, ownerName, initialNotes = '') =>
+    setSummarizeModal({ open: true, appointmentId, ownerName, initialNotes });
+  const closeSummarize = () => setSummarizeModal({ open: false, appointmentId: null, ownerName: '', initialNotes: '' });
+
+  const handleUseSummaryInEmail = (summary) => {
+    closeSummarize();
+    if (summarizeModal.appointmentId && summarizeModal.ownerName) {
+      openEmail(summarizeModal.appointmentId, summarizeModal.ownerName, summary);
+    }
   };
 
   if (loading && (!list || list.length === 0)) return <Spinner className="py-20" />;
@@ -69,6 +83,12 @@ export default function AllAppointments() {
                 <StatusBadge status={a.status} />
                 <Button
                   variant="outline"
+                  onClick={() => openSummarize(a._id, a.petOwner?.name ?? a.petOwner?.email ?? 'Owner', a.query || '')}
+                >
+                  Summarize notes
+                </Button>
+                <Button
+                  variant="outline"
                   onClick={() => openEmail(a._id, a.petOwner?.name ?? a.petOwner?.email ?? 'Owner')}
                 >
                   Send email
@@ -89,6 +109,13 @@ export default function AllAppointments() {
         onClose={closeEmail}
         appointmentId={emailModal.id}
         ownerName={emailModal.ownerName}
+        initialMessage={emailModal.initialMessage}
+      />
+      <SummarizeNotesModal
+        open={summarizeModal.open}
+        onClose={closeSummarize}
+        initialNotes={summarizeModal.initialNotes}
+        onUseInEmail={summarizeModal.appointmentId ? handleUseSummaryInEmail : undefined}
       />
     </div>
   );

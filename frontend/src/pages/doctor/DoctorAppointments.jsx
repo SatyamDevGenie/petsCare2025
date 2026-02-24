@@ -5,6 +5,7 @@ import { getDoctorAppointments, respondToAppointment, clearAppointmentError } fr
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
 import Spinner from '../../components/common/Spinner';
+import SummarizeNotesModal from '../../components/SummarizeNotesModal';
 
 function StatusBadge({ status }) {
   const colors = {
@@ -24,6 +25,8 @@ export default function DoctorAppointments() {
   const dispatch = useDispatch();
   const { list, loading, error, actionSuccess } = useSelector((s) => s.appointments);
   const [respondingId, setRespondingId] = useState(null);
+  const [summarizeOpen, setSummarizeOpen] = useState(false);
+  const [summarizeInitialNotes, setSummarizeInitialNotes] = useState('');
 
   useEffect(() => {
     dispatch(getDoctorAppointments());
@@ -66,6 +69,15 @@ export default function DoctorAppointments() {
                 {a.query && <p className="text-sm text-slate-500 mt-1">{a.query}</p>}
               </div>
               <div className="flex items-center gap-2 flex-wrap">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSummarizeInitialNotes(a.query || '');
+                    setSummarizeOpen(true);
+                  }}
+                >
+                  Summarize notes
+                </Button>
                 <StatusBadge status={a.status} />
                 {a.status === 'Pending' && (
                   <>
@@ -102,6 +114,12 @@ export default function DoctorAppointments() {
           <p className="text-slate-500 text-center py-8">No appointments assigned to you.</p>
         </Card>
       )}
+
+      <SummarizeNotesModal
+        open={summarizeOpen}
+        onClose={() => setSummarizeOpen(false)}
+        initialNotes={summarizeInitialNotes}
+      />
     </div>
   );
 }

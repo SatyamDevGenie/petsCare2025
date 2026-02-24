@@ -6,7 +6,7 @@ import Input from '../common/Input';
 import Button from '../common/Button';
 import Modal from '../common/Modal';
 
-export default function SendEmailModal({ open, onClose, appointmentId, ownerName }) {
+export default function SendEmailModal({ open, onClose, appointmentId, ownerName, initialMessage = '' }) {
   const [subject, setSubject] = useState('PetsCare – Update on your appointment');
   const [message, setMessage] = useState('');
   const dispatch = useDispatch();
@@ -15,6 +15,10 @@ export default function SendEmailModal({ open, onClose, appointmentId, ownerName
   useEffect(() => {
     if (error) toast.error(error);
   }, [error]);
+
+  useEffect(() => {
+    if (open && initialMessage) setMessage(initialMessage);
+  }, [open, initialMessage]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
