@@ -1,4 +1,5 @@
 import asyncHandler from "express-async-handler";
+import Service from "../models/serviceModel.js";
 
 const GEMINI_REST_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 const GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions";
@@ -321,4 +322,101 @@ const petRecommendations = asyncHandler(async (req, res) => {
   });
 });
 
-export { chat, summarizeNotes, petRecommendations };
+/**
+ * Build system prompt for "Ask about this service" – answer only from the given service info.
+ */
+function getAskAboutServiceSystemPrompt(serviceTitle, serviceDescription) {
+  const title = String(serviceTitle || "This service").trim();
+  const desc = String(serviceDescription || "").trim();
+  return `You are a helpful assistant for PetsCare, a pet care and veterinary clinic. You are answering questions about ONE specific service they offer.
+
+Service name: ${title}
+Service description: ${desc}
+
+Answer the user's question in 2–4 short sentences using ONLY the information above. If the question cannot be answered from this service description (e.g. pricing, duration, what to bring), say so briefly and suggest they contact the clinic or book an appointment for details. Do not invent details not in the description. Do not give medical advice. Keep the tone friendly and professional. Output only the answer, no preamble.`;
+}
+
+/**
+ * @desc    Ask AI a question about a specific service (what's included, how to prepare, etc.).
+ * @route   POST /api/ai/ask-about-service
+ * @access  Public
+ */
+const askAboutService = asyncHandler(async (req, res) => {
+  const { serviceId, question } = req.body;
+
+  const q = typeof question === "string" ? question.trim() : "";
+  if (!q) {
+    return res.status(400).json({
+      success: false,
+      message: "Please provide a non-empty 'question' in the request body.",
+    });
+  }
+
+  if (!serviceId) {
+    return res.status(400).json({
+      success: false,
+      message: "Please provide 'serviceId'.",
+    });
+  }
+
+  const service = await Service.findById(serviceId);
+  if (!service) {
+    return res.status(404).json({
+      success: false,
+      message: "Service not found.",
+    });
+  }
+
+  const groqKey = process.env.GROQ_API_KEY;
+  const geminiKey = process.env.GEMINI_API_KEY;
+
+  if (!groqKey && !geminiKey) {
+    return res.status(503).json({
+      success: false,
+      message: "AI not configured. Add GROQ_API_KEY or GEMINI_API_KEY to .env",
+    });
+  }
+
+  const systemPrompt = getAskAboutServiceSystemPrompt(service.title, service.description);
+  const userMessage = q;
+  let lastError = null;
+
+  if (groqKey) {
+    try {
+      const { text } = await callGroq(groqKey, systemPrompt, userMessage);
+      return res.status(200).json({ success: true, data: { reply: text } });
+    } catch (err) {
+      lastError = err;
+      console.error("Groq ask-about-service error:", err?.message || err);
+    }
+  }
+
+  if (geminiKey) {
+    const fullPrompt = `${systemPrompt}\n\nUser question: ${userMessage}`;
+    for (const modelId of GEMINI_MODELS) {
+      try {
+        const { text } = await callGemini(geminiKey, modelId, fullPrompt);
+        return res.status(200).json({ success: true, data: { reply: text } });
+      } catch (err) {
+        lastError = err;
+        console.error(`Gemini ask-about-service (${modelId}):`, err?.message || err);
+        if (err?.status === 404) continue;
+        if (err?.status === 429 || err?.status === 403) break;
+      }
+    }
+  }
+
+  const msg = String(lastError?.message || lastError || "");
+  if (lastError?.status === 429 || msg.includes("429") || msg.includes("quota") || msg.includes("rate")) {
+    return res.status(429).json({
+      success: false,
+      message: "Too many requests. Please wait a minute and try again.",
+    });
+  }
+  return res.status(500).json({
+    success: false,
+    message: "AI is temporarily unavailable. Try again in a moment.",
+  });
+});
+
+export { chat, summarizeNotes, petRecommendations, askAboutService };

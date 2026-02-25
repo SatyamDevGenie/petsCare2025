@@ -35,3 +35,14 @@ export async function getPetRecommendations(petType, age, breed = '') {
   const { data } = await api.post('/ai/pet-recommendations', body);
   return data?.data ?? { recommendations: '' };
 }
+
+/**
+ * Ask AI a question about a specific service (e.g. What's included? How to prepare?).
+ * @param {string} serviceId - Service _id
+ * @param {string} question - User question
+ * @returns {Promise<{ reply: string }>}
+ */
+export async function askAboutService(serviceId, question) {
+  const { data } = await api.post('/ai/ask-about-service', { serviceId, question });
+  return data?.data ?? { reply: '' };
+}
