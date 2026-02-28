@@ -5,9 +5,10 @@ export default function Home() {
   const { token, role } = useSelector((s) => s.auth);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen flex flex-col">
+      <div className="flex-1">
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-slate-50 via-white to-white pt-16 pb-24 md:pt-24 md:pb-32">
+      <section className="hero-section relative overflow-hidden bg-gradient-to-b from-slate-50 via-white to-white pt-16 pb-24 md:pt-24 md:pb-32">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(34,197,94,0.12),transparent)]" />
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary-50 text-primary-700 text-xs font-medium mb-8 border border-primary-100">
@@ -327,8 +328,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-slate-900 text-slate-300 py-12 md:py-16">
+      </div>
+      {/* Footer - full width, sticks to bottom */}
+      <footer className="mt-auto w-screen relative left-1/2 -translate-x-1/2 bg-slate-900 text-slate-300 py-12 md:py-16">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
             <div>
