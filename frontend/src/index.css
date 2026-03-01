@@ -111,9 +111,7 @@ html[data-theme="dark"] .hero-section .text-slate-700,
 html[data-theme="dark"] .hero-section .text-slate-600,
 html[data-theme="dark"] .hero-section .text-slate-500 { color: #0f172a !important; }
 html[data-theme="dark"] .hero-section .border-slate-300 { border-color: #e2e8f0 !important; }
-html[data-theme="dark"] .hero-section .hover\:bg-slate-50:hover { background-color: #f1f5f9 !important; }
-
-html[data-theme="classic"] .text-slate-900,
+html[data-theme="dark"] .hero-section .hover\:bg-slate-50:hover { background-color: #f1f5f9 !important; }html[data-theme="classic"] .text-slate-900,
 html[data-theme="classic"] .text-slate-800 { color: var(--text-primary) !important; }
 html[data-theme="classic"] .text-slate-700,
 html[data-theme="classic"] .text-slate-600 { color: var(--text-secondary) !important; }
