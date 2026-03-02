@@ -40,7 +40,7 @@ export default function Header() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
           <Link to="/" className="flex items-center gap-2">
-            <span className="text-lg font-semibold tracking-tight theme-text">PetsCare</span>
+            <span className="text-lg font-semibold tracking-tight theme-text">PetScan</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-8">
